@@ -7,9 +7,9 @@
         placeholder="Search for music..."
         class="w-1/2 px-4 py-2 rounded bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-green-500"
       />
-      <button class="bg-green-500 text-black px-4 py-2 rounded-full hover:bg-green-400 transition-colors">
+      <NuxtLink to="/profile" class="bg-green-500 text-black px-4 py-2 rounded-full hover:bg-green-400 transition-colors">
         View Profile
-      </button>
+      </NuxtLink>
     </header>
 
     <!-- Main Layout -->
@@ -21,77 +21,97 @@
         </div>
 
         <nav class="space-y-4">
-          <button class="block w-full text-left px-4 py-2 hover:bg-gray-800 rounded">Home</button>
-          <button class="block w-full text-left px-4 py-2 hover:bg-gray-800 rounded">Your Library</button>
+          <NuxtLink to="/" class="block w-full text-left px-4 py-2 hover:bg-gray-800 rounded">Home</NuxtLink>
+          <NuxtLink to="/library" class="block w-full text-left px-4 py-2 hover:bg-gray-800 rounded">Your Library</NuxtLink>
           <button @click="showCreateModal = true" class="block w-full text-left px-4 py-2 bg-green-500 text-black rounded hover:bg-green-400 transition-colors">
             + Add Playlist
           </button>
         </nav>
 
-        <div class="grid grid-cols-2 gap-2 pt-4">
-          <img
-            v-for="playlist in userPlaylists"
-            :key="playlist.id"
-            :src="playlist.images[0]?.url"
-            class="w-full h-auto rounded"
-            alt="Playlist"
-          />
+        <!-- Playlist Titles in Sidebar -->
+        <div class="mt-6">
+          <h3 class="text-lg font-semibold mb-3 text-white">Your Playlists</h3>
+          <div class="space-y-2">
+            <NuxtLink 
+              v-for="playlist in userPlaylists" 
+              :key="playlist.id"
+              :to="`/playlists/${playlist.id}`"
+              class="flex items-center space-x-3 px-2 py-2 hover:bg-gray-800 rounded group"
+            >
+              <img
+                :src="playlist.images && playlist.images.length > 0 ? playlist.images[0].url : '/default-playlist.png'"
+                class="w-10 h-10 object-cover rounded"
+                :alt="playlist.name"
+              />
+              <p class="text-sm text-gray-400 group-hover:text-white truncate">{{ playlist.name }}</p>
+            </NuxtLink>
+          </div>
         </div>
       </aside>
 
       <!-- Main Content -->
-      <main class="w-3/4 overflow-y-auto p-6 space-y-8">
+      <main class="w-3/4 overflow-y-auto p-6 space-y-8 bg-black">
         <section>
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="text-2xl font-bold">Your Playlists</h2>
-        <button @click="showCreateModal = true" class="bg-green-500 text-black px-4 py-2 rounded-full hover:bg-green-400 transition-colors">
-          Create Playlist
-        </button>
-      </div>
-      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-        <NuxtLink
-          v-for="playlist in userPlaylists"
-          :key="playlist.id"
-          :to="`/playlists/${playlist.id}`"
-        >
-          <PlaylistCard :playlist="playlist" />
-        </NuxtLink>
-      </div>
-    </section>
+          <h2 class="text-2xl font-bold text-white mb-4">Recent Playlists</h2>
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            <NuxtLink
+              v-for="playlist in recentPlaylists"
+              :key="playlist.id"
+              :to="`/playlists/${playlist.id}`"
+              class="bg-gray-800 rounded-lg overflow-hidden hover:bg-gray-700 transition-colors"
+            >
+              <img 
+                :src="playlist.images && playlist.images.length > 0 ? playlist.images[0].url : '/default-playlist.png'"
+                :alt="playlist.name"
+                class="w-full aspect-square object-cover"
+              />
+              <div class="p-4">
+                <h3 class="font-semibold text-white truncate">{{ playlist.name }}</h3>
+                <p class="text-sm text-gray-400 mt-1">{{ playlist.tracks?.total || 0 }} tracks</p>
+              </div>
+            </NuxtLink>
+          </div>
+        </section>
 
-    <section>
-      <h2 class="text-2xl font-bold mb-4">Recommended Playlists</h2>
-      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-        <NuxtLink
-          v-for="playlist in recommendedPlaylists"
-          :key="playlist.id"
-          :to="`/playlists/${playlist.id}`"
-        >
-          <PlaylistCard :playlist="playlist" />
-        </NuxtLink>
-      </div>
-    </section>
+        <section>
+          <h2 class="text-2xl font-bold text-white mb-4">Recent Tracks</h2>
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            <TrackCard
+              v-for="track in recentTracks"
+              :key="track.id"
+              :track="track"
+            />
+          </div>
+        </section>
 
-    <section>
-      <h2 class="text-2xl font-bold mb-4">Recommended Tracks</h2>
-      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-        <TrackCard
-          v-for="track in recommendedTracks"
-          :key="track.id"
-          :track="track"
-        />
-      </div>
-    </section>
+        <section>
+          <h2 class="text-2xl font-bold text-white mb-4">New Releases</h2>
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            <NuxtLink 
+              v-for="album in newReleases" 
+              :key="album.id"
+              :to="`/albums/${album.id}`"
+              class="bg-gray-800 rounded-lg overflow-hidden hover:bg-gray-700 transition-colors"
+            >
+              <img 
+                :src="album.images?.[0]?.url || '/default-album.png'"
+                :alt="album.name"
+                class="w-full aspect-square object-cover"
+              />
+              <div class="p-4">
+                <h3 class="font-semibold text-white truncate">{{ album.name }}</h3>
+                <p class="text-sm text-gray-400 mt-1 truncate">{{ album.artists?.[0]?.name }}</p>
+              </div>
+            </NuxtLink>
+          </div>
+        </section>
       </main>
     </div>
 
-    <!-- Modal (unchanged) -->
-    <div
-      v-if="showCreateModal"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-    >
+    <!-- Modal -->
+    <div v-if="showCreateModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-gray-800 p-6 rounded-lg w-full max-w-md">
-        <h2 class="text-2xl font-bold mb-4">Create New Playlist</h2>
+        <h2 class="text-2xl font-bold mb-4 text-white">Create New Playlist</h2>
         <input
           v-model="newPlaylist.name"
           placeholder="Playlist name"
@@ -116,52 +136,71 @@
   </div>
 </template>
 
-
-
 <script setup>
-const recommendedPlaylists = ref([]);
-const recommendedTracks = ref([]);
-const authStore = useAuthStore()
+import { ref, onMounted, computed } from 'vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
 
+const router = useRouter();
+const authStore = useAuthStore();
+
+const userPlaylists = ref([]);
+const recentTracks = ref([]);
+const newReleases = ref([]);
 const showCreateModal = ref(false);
 const newPlaylist = ref({
   name: '',
   description: ''
 });
-const userPlaylists = ref([]);
 
-const fetchRecommendedPlaylists = async () => {
-  const response = await fetch('https://api.spotify.com/v1/browse/featured-playlists', {
-    headers: {
-      Authorization: `Bearer ${authStore.token}`
-    }
-  });
-  const data = await response.json();
-  
-  recommendedPlaylists.value = data.playlists.items;
-};
-
-const fetchRecommendedTracks = async () => {
-  const response = await fetch('https://api.spotify.com/v1/me/top/tracks', {
-    headers: {
-      Authorization: `Bearer ${authStore.token}`
-    }
-  });
-  const data = await response.json();
-  recommendedTracks.value = data.items;
-};
+// Compute recent playlists (last 8)
+const recentPlaylists = computed(() => {
+  return userPlaylists.value.slice(0, 8);
+});
 
 const fetchUserPlaylists = async () => {
   try {
     const response = await fetch('https://api.spotify.com/v1/me/playlists', {
       headers: {
-        Authorization: `Bearer ${authStore.token}`
+        'Authorization': `Bearer ${authStore.token}`
       }
     });
     const data = await response.json();
-    userPlaylists.value = data.items;
+    if (Array.isArray(data.items)) {
+      userPlaylists.value = data.items;
+    }
   } catch (error) {
     console.error('Error fetching user playlists:', error);
+  }
+};
+
+const fetchRecentTracks = async () => {
+  try {
+    const response = await fetch('https://api.spotify.com/v1/me/top/tracks?time_range=short_term&limit=12', {
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      }
+    });
+    const data = await response.json();
+    recentTracks.value = data.items || [];
+  } catch (error) {
+    console.error('Error fetching recent tracks:', error);
+  }
+};
+
+const fetchNewReleases = async () => {
+  try {
+    const response = await fetch('https://api.spotify.com/v1/browse/new-releases?country=US&limit=12', {
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      }
+    });
+    const data = await response.json();
+    if (data.albums?.items) {
+      newReleases.value = data.albums.items;
+    }
+  } catch (error) {
+    console.error('Error fetching new releases:', error);
   }
 };
 
@@ -181,28 +220,31 @@ const createPlaylist = async () => {
     });
 
     const data = await response.json();
-
     if (response.ok) {
-      await Promise.all([
-        fetchRecommendedPlaylists(),
-        fetchUserPlaylists()
-      ]);
+      await fetchUserPlaylists();
       showCreateModal.value = false;
       newPlaylist.value = { name: '', description: '' };
-    } else {
-      console.error('Failed to create playlist:', data);
     }
   } catch (error) {
     console.error('Error creating playlist:', error);
   }
 };
 
-onMounted(() => {
-  Promise.all([
-    fetchRecommendedPlaylists(),
-    fetchRecommendedTracks(),
-    fetchUserPlaylists()
-  ]);
+onMounted(async () => {
+  if (!authStore.isAuthenticated) {
+    router.push('/login');
+    return;
+  }
+
+  try {
+    await Promise.all([
+      fetchUserPlaylists(),
+      fetchRecentTracks(),
+      fetchNewReleases()
+    ]);
+  } catch (error) {
+    console.error('Error loading data:', error);
+  }
 });
 </script>
 
