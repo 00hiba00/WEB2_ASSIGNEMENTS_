@@ -1,21 +1,25 @@
 <template>
   <div class="h-screen flex flex-col">
     <!-- Top Bar -->
-    <header class="flex justify-between items-center px-6 py-4 bg-gray-900 text-white">
-      <input
-        type="text"
-        placeholder="Search for music..."
-        class="w-1/2 px-4 py-2 rounded bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-green-500"
-      />
-      <NuxtLink to="/profile" class="bg-green-500 text-black px-4 py-2 rounded-full hover:bg-green-400 transition-colors">
-        View Profile
-      </NuxtLink>
+    <header class="flex justify-center items-center px-6 py-4 bg-black text-white">
+      <div class="w-1/2 relative">
+        <input
+          type="text"
+          placeholder="Search for music..."
+          class="w-full px-4 py-2 rounded bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+        />
+      </div>
+      <div class="absolute right-6">
+        <NuxtLink to="/profile" class="bg-green-500 text-black px-4 py-2 rounded-full hover:bg-green-400 transition-colors">
+          View Profile
+        </NuxtLink>
+      </div>
     </header>
 
     <!-- Main Layout -->
     <div class="flex flex-1 overflow-hidden">
-      <!-- Sidebar -->
-      <aside class="w-1/4 bg-black text-white p-4 space-y-6 overflow-y-auto">
+      <!-- Sidebar with custom scrollbar -->
+      <aside class="w-1/4 bg-black text-white p-4 space-y-6 overflow-y-auto custom-scrollbar">
         <div class="text-2xl font-bold mb-6">
           <img src="https://storage.googleapis.com/pr-newsroom-wp/1/2018/11/Spotify_Logo_CMYK_Green.png" alt="Spotify" class="w-32" />
         </div>
@@ -50,7 +54,7 @@
       </aside>
 
       <!-- Main Content -->
-      <main class="w-3/4 overflow-y-auto p-6 space-y-8 bg-black">
+      <main class="w-3/4 overflow-y-auto p-6 space-y-8 bg-black custom-scrollbar">
         <section>
           <h2 class="text-2xl font-bold text-white mb-4">Recent Playlists</h2>
           <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
@@ -135,6 +139,31 @@
     </div>
   </div>
 </template>
+
+<style scoped>
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #1DB954 #000000;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #000000;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #1DB954;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #1ed760;
+}
+</style>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
