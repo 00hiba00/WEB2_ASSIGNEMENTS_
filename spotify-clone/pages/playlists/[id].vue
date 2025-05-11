@@ -26,7 +26,7 @@
           <p class="text-gray-400 mb-4">By {{ playlist?.owner?.display_name }}</p>
           <div class="flex space-x-4">
             <button @click="handlePlayPlaylist" class="bg-green-500 hover:bg-green-600 text-black font-bold py-2 px-6 rounded-full transition duration-300">
-              {{ isPlayerReady ? 'Pause' : 'Play' }}
+              {{ audioStore.isReady ? 'Pause' : 'Play' }}
             </button>
             <button @click="handleDelete" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-full transition duration-300">
               Delete
@@ -80,15 +80,15 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { useSpotifyPlayer } from '@/composables/useSpotifyPlayer'
+import { useAudioStore } from '@/stores/audio'
 import { useSpotifyApi } from '@/composables/useSpotifyApi'
 import NotificationModal from '~/components/NotificationModal.vue'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const audioStore = useAudioStore()
 const spotifyApi = useSpotifyApi()
-const { playTrack, playPlaylist, isPlayerReady, error: playerError } = useSpotifyPlayer()
 
 const playlist = ref(null)
 const showDeleteModal = ref(false)
@@ -101,19 +101,19 @@ const isEditing = ref(false)
 const editedName = ref('')
 
 const handlePlayTrack = (track) => {
-  if (!isPlayerReady.value) {
+  if (!audioStore.isReady) {
     console.warn('Player not ready')
     return
   }
-  playTrack(track.uri)
+  audioStore.playTrack(track)
 }
 
 const handlePlayPlaylist = () => {
-  if (!isPlayerReady.value || !playlist.value) {
+  if (!audioStore.isReady || !playlist.value) {
     console.warn('Player not ready or no playlist')
     return
   }
-  playPlaylist(playlist.value.id)
+  audioStore.playPlaylist(playlist.value, 0)
 }
 
 const fetchPlaylist = async () => {

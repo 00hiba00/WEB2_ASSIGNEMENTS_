@@ -59,7 +59,6 @@
 import { ref, computed } from 'vue'
 import { useAudioStore } from '@/stores/audio'
 import { useRouter } from 'vue-router'
-import { useSpotifyPlayer } from '@/composables/useSpotifyPlayer'
 
 const props = defineProps({
   track: {
@@ -74,29 +73,17 @@ const props = defineProps({
 const isHovered = ref(false)
 const audioStore = useAudioStore()
 const router = useRouter()
-const { playTrack, isPlayerReady, isAuthenticated, error } = useSpotifyPlayer()
 
 const isPlaying = computed(() => {
   return audioStore.isPlaying && audioStore.currentTrack?.id === props.track.id
 })
 
 const handlePlay = () => {
-  if (!isAuthenticated.value) {
-    console.warn('Player not authenticated')
-    // You might want to show a notification to the user here
+  if (!audioStore.isReady) {
+    console.warn('Player not ready')
     return
   }
-  
-  if (!isPlayerReady.value) {
-    console.warn('Player not ready', {
-      isReady: isPlayerReady.value,
-      isAuthenticated: isAuthenticated.value,
-      error: error.value
-    })
-    return
-  }
-
-  playTrack(props.track.uri)
+  audioStore.playTrack(props.track)
 }
 
 const navigateToTrack = () => {
