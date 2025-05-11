@@ -22,7 +22,7 @@ export const useAudioStore = defineStore('audio', {
 
   persist: {
     storage: piniaPluginPersistedstate.localStorage(),
-    pick: ['currentTrack', 'volume', 'currentTime', 'currentPlaylist', 'currentPlaylistIndex', 'currentImage']
+    pick: ['currentTrack', 'volume', 'currentTime', 'currentPlaylist', 'currentPlaylistIndex', 'currentImage', 'isPlaying', 'isReady']
   },
 
   actions: {
@@ -145,14 +145,15 @@ export const useAudioStore = defineStore('audio', {
 
     async playTrack(track) {
       console.log('=== Audio Store: Play Track Request ===');
-      console.log('Current state:', {
-        isReady: this.isReady,
-        hasPlayer: !!this.player,
-        hasDeviceId: !!this.deviceId,
-        currentTrack: this.currentTrack?.name,
-        retryCount: this.playbackRetryCount
-      });
 
+      // First, validate that we received a track object
+      if (!track) {
+        console.error('No track provided to playTrack');
+        this.error = 'No track provided';
+        return;
+      }
+
+      // Check if player is ready
       if (!this.isReady || !this.player || !this.deviceId) {
         console.log('Player not ready, queueing track for later');
         this.pendingPlayRequest = { type: 'track', data: track };
@@ -160,37 +161,108 @@ export const useAudioStore = defineStore('audio', {
         return;
       }
 
-      try {
-        const authStore = useAuthStore();
-        if (!authStore.token) {
-          console.error('No auth token available');
-          this.error = 'Authentication error';
-          return;
-        }
+      // Check authentication
+      const authStore = useAuthStore();
+      if (!authStore.token) {
+        console.error('No auth token available');
+        this.error = 'Authentication error';
+        return;
+      }
 
-        if (!track) {
-          console.error('No track provided');
-          this.error = 'No track provided';
-          return;
-        }
+      // Debug log the raw track input
+      console.log('Raw track input:', {
+        type: typeof track,
+        isProxy: !!track.__v_raw,
+        constructor: track?.constructor?.name,
+        properties: Object.getOwnPropertyNames(track),
+        value: track
+      });
+
+      try {
+        // If track is a Proxy, get the raw value
+        const rawTrack = track.__v_raw || track;
+
+        // Normalize track data - handle both direct track objects and playlist track objects
+        const normalizedTrack = rawTrack.track || rawTrack;
+
+        // Log normalized track structure
+        console.log('Normalized track structure:', {
+          hasUri: !!normalizedTrack.uri,
+          hasId: !!normalizedTrack.id,
+          hasSpotifyUrl: !!normalizedTrack.external_urls?.spotify,
+          hasHref: !!normalizedTrack.href,
+          properties: Object.keys(normalizedTrack),
+          prototype: Object.getPrototypeOf(normalizedTrack),
+          value: JSON.parse(JSON.stringify(normalizedTrack))
+        });
 
         // Get the full Spotify URI for the track
         let uri;
-        if (track.uri) {
-          uri = track.uri;
-        } else if (track.track?.uri) {
-          uri = track.track.uri;
-        } else if (track.id) {
-          uri = `spotify:track:${track.id}`;
-        } else if (track.track?.id) {
-          uri = `spotify:track:${track.track.id}`;
+        let uriSource = 'unknown';
+
+        // Try different paths to find the URI or ID
+        if (normalizedTrack.external_urls?.spotify) {
+          // Extract ID from Spotify URL
+          const spotifyUrl = normalizedTrack.external_urls.spotify;
+          const idMatch = spotifyUrl.match(/track\/([a-zA-Z0-9]+)/);
+          if (idMatch) {
+            uri = `spotify:track:${idMatch[1]}`;
+            uriSource = 'external_url';
+          }
+        }
+
+        if (!uri && normalizedTrack.uri) {
+          uri = normalizedTrack.uri;
+          uriSource = 'direct_uri';
+        }
+
+        if (!uri && normalizedTrack.id) {
+          uri = `spotify:track:${normalizedTrack.id}`;
+          uriSource = 'id';
+        }
+
+        if (!uri && normalizedTrack.href) {
+          // Extract ID from API href
+          const idMatch = normalizedTrack.href.match(/tracks\/([a-zA-Z0-9]+)/);
+          if (idMatch) {
+            uri = `spotify:track:${idMatch[1]}`;
+            uriSource = 'href';
+          }
+        }
+
+        // Try nested track object if it exists
+        if (!uri && normalizedTrack.track) {
+          const nestedTrack = normalizedTrack.track;
+          if (nestedTrack.uri) {
+            uri = nestedTrack.uri;
+            uriSource = 'nested_uri';
+          } else if (nestedTrack.id) {
+            uri = `spotify:track:${nestedTrack.id}`;
+            uriSource = 'nested_id';
+          } else if (nestedTrack.external_urls?.spotify) {
+            const spotifyUrl = nestedTrack.external_urls.spotify;
+            const idMatch = spotifyUrl.match(/track\/([a-zA-Z0-9]+)/);
+            if (idMatch) {
+              uri = `spotify:track:${idMatch[1]}`;
+              uriSource = 'nested_external_url';
+            }
+          }
         }
 
         if (!uri) {
-          console.error('Could not determine track URI:', track);
-          this.error = 'Invalid track data';
+          // Enhanced error logging
+          console.error('Could not determine track URI. Debug info:', {
+            rawInput: typeof track === 'object' ? JSON.parse(JSON.stringify(track)) : track,
+            normalizedTrack: typeof normalizedTrack === 'object' ? JSON.parse(JSON.stringify(normalizedTrack)) : normalizedTrack,
+            attemptedSources: ['external_urls', 'uri', 'id', 'href', 'nested_track'],
+            availableProperties: Object.keys(normalizedTrack),
+            propertyDescriptors: Object.getOwnPropertyDescriptors(normalizedTrack)
+          });
+          this.error = 'Could not determine track URI';
           return;
         }
+
+        console.log(`Successfully extracted URI from ${uriSource}:`, uri);
 
         // Always ensure device is registered and active before playing
         const isDeviceReady = await this.ensureDeviceRegistered();
@@ -206,13 +278,6 @@ export const useAudioStore = defineStore('audio', {
           this.isReady = false;
           return;
         }
-
-        console.log('Playing track:', {
-          name: track.name,
-          uri: uri,
-          deviceId: this.deviceId,
-          retryCount: this.playbackRetryCount
-        });
 
         // Play the track using Spotify Connect API
         const response = await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${this.deviceId}`, {
@@ -235,7 +300,6 @@ export const useAudioStore = defineStore('audio', {
 
           if (response.status === 404) {
             console.log('Device not found, attempting recovery...');
-            // Reset device registration state
             this.isReady = false;
 
             if (this.playbackRetryCount < 3) {
@@ -258,12 +322,21 @@ export const useAudioStore = defineStore('audio', {
         // Reset retry count on successful playback
         this.playbackRetryCount = 0;
 
-        console.log('Track playback started successfully');
+        // Update the store with normalized track data
+        this.currentTrack = {
+          id: normalizedTrack.id || normalizedTrack.track?.id,
+          name: normalizedTrack.name || normalizedTrack.track?.name,
+          uri: uri,
+          artists: normalizedTrack.artists || normalizedTrack.track?.artists || [],
+          album: normalizedTrack.album || normalizedTrack.track?.album || { images: [] }
+        };
+
+        console.log('Setting current track:', this.currentTrack);
+
         this.isPlaying = true;
-        this.currentTrack = track.track || track;
         this.currentPlaylist = null;
         this.currentPlaylistIndex = 0;
-        this.currentImage = track.album?.images?.[0]?.url;
+        this.currentImage = normalizedTrack.album?.images?.[0]?.url || normalizedTrack.track?.album?.images?.[0]?.url;
         this.error = null;
       } catch (error) {
         console.error('Error playing track:', error);
@@ -318,10 +391,27 @@ export const useAudioStore = defineStore('audio', {
       });
 
       this.isPlaying = state.isPlaying;
-      this.currentTrack = state.currentTrack;
+
+      // Only update track data if we have a new track
+      if (state.currentTrack) {
+        this.currentTrack = {
+          id: state.currentTrack.id,
+          name: state.currentTrack.name,
+          uri: state.currentTrack.uri,
+          artists: state.currentTrack.artists || [],
+          album: state.currentTrack.album || { images: [] }
+        };
+        this.currentImage = state.currentTrack.album?.images?.[0]?.url;
+      }
+
       this.currentTime = state.currentTime;
       this.duration = state.duration;
-      this.currentImage = state.currentTrack?.album?.images?.[0]?.url;
+
+      console.log('Current track state:', {
+        name: this.currentTrack?.name,
+        artists: this.currentTrack?.artists?.map(a => a.name),
+        image: this.currentImage
+      });
     },
 
     async playPlaylist(playlist, startIndex = 0) {

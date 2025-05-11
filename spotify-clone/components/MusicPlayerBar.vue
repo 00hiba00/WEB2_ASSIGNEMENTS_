@@ -1,16 +1,17 @@
 <template>
-  <div v-if="currentTrack" 
-       class="fixed bottom-0 left-0 right-0 bg-black border-t border-gray-800 p-4 z-50">
-    <div class="max-w-7xl mx-auto flex items-center justify-between">
+  <div class="fixed bottom-0 left-0 right-0 bg-black border-t border-gray-800 p-4 z-50">
+    <div v-if="currentTrack" class="max-w-7xl mx-auto flex items-center justify-between">
       <!-- Track Info -->
       <div class="flex items-center space-x-4 flex-1 min-w-0 cursor-pointer"
            @click="navigateToTrack">
-        <img :src="currentImage || '/default-album.png'" 
-             :alt="currentTrack.name" 
+        <img :src="currentImage || currentTrack?.album?.images?.[0]?.url || '/default-album.png'" 
+             :alt="currentTrack?.name" 
              class="w-14 h-14 object-cover rounded-md shadow-lg" />
         <div class="truncate">
-          <h3 class="text-white font-medium truncate">{{ currentTrack.name }}</h3>
-          <p class="text-gray-400 text-sm truncate">{{ currentTrack.artists?.[0]?.name }}</p>
+          <h3 class="text-white font-medium truncate">{{ currentTrack?.name }}</h3>
+          <p class="text-gray-400 text-sm truncate">
+            {{ artistNames }}
+          </p>
         </div>
       </div>
 
@@ -73,6 +74,9 @@
                class="w-24 accent-green-500" />
       </div>
     </div>
+    <div v-else class="max-w-7xl mx-auto flex items-center justify-center text-gray-400 py-2">
+      Select a track to play
+    </div>
   </div>
 </template>
 
@@ -92,6 +96,11 @@ const duration = computed(() => audioStore.duration)
 const volume = computed({
   get: () => audioStore.volume * 100,
   set: (value) => audioStore.setVolume(value / 100)
+})
+
+const artistNames = computed(() => {
+  if (!currentTrack.value?.artists?.length) return ''
+  return currentTrack.value.artists.map(artist => artist.name).join(', ')
 })
 
 const progress = computed(() => {
