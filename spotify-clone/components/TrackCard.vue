@@ -14,15 +14,21 @@
       <button 
         class="absolute bottom-1 right-1 bg-green-500 text-black p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 focus:outline-none focus:ring-2 focus:ring-green-400"
         :class="{ 'opacity-100': isPlaying }"
-        @click.stop="handlePlayClick"
+        @click.stop="handlePlay"
         aria-label="Play or pause track"
       >
-        <PlayIcon v-if="!isPlaying" class="w-4 h-4" />
-        <PauseIcon v-else class="w-4 h-4" />
+        <svg v-if="!isPlaying" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+        <svg v-else class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+        </svg>
       </button>
     </div>
     <div class="text-white">
-      <h3 class="font-bold text-sm mb-0.5 truncate">{{ track.name }}</h3>
+      <h3 class="font-bold text-sm mb-0.5 truncate">
+        {{ track.name }}
+      </h3>
       <p class="text-gray-400 text-xs truncate">
         <span v-for="(artist, index) in track.artists" :key="artist.id">
           <NuxtLink 
@@ -42,19 +48,23 @@
       class="absolute top-1 right-1 text-gray-400 hover:text-white transition-colors duration-300"
       aria-label="Remove from playlist"
     >
-      <XIcon class="w-4 h-4" />
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M6 18L18 6M6 6l12 12" />
+      </svg>
     </button>
   </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
-import { PlayIcon, PauseIcon, XIcon } from 'lucide-vue-next'
+import { useAudioStore } from '@/stores/audio'
+import { useRouter } from 'vue-router'
+import { useSpotifyPlayer } from '@/composables/useSpotifyPlayer'
 
 const props = defineProps({
   track: {
     type: Object,
-    required: true,
+    required: true
   },
   imageUrl: String,
   albumId: String,
@@ -62,22 +72,31 @@ const props = defineProps({
 })
 
 const isHovered = ref(false)
-
 const audioStore = useAudioStore()
 const router = useRouter()
+const { playTrack, isPlayerReady, isAuthenticated, error } = useSpotifyPlayer()
 
 const isPlaying = computed(() => {
   return audioStore.isPlaying && audioStore.currentTrack?.id === props.track.id
 })
 
-const handlePlayClick = (event) => {
-  event.stopPropagation()
-  audioStore.setImage(props.track.album ? props.track.album.images[0].url : props.imageUrl)
-  if (isPlaying.value) {
-    audioStore.pauseTrack()
-  } else {
-    audioStore.playTrack(props.track)
+const handlePlay = () => {
+  if (!isAuthenticated.value) {
+    console.warn('Player not authenticated')
+    // You might want to show a notification to the user here
+    return
   }
+  
+  if (!isPlayerReady.value) {
+    console.warn('Player not ready', {
+      isReady: isPlayerReady.value,
+      isAuthenticated: isAuthenticated.value,
+      error: error.value
+    })
+    return
+  }
+
+  playTrack(props.track.uri)
 }
 
 const navigateToTrack = () => {

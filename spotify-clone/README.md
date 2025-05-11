@@ -73,3 +73,26 @@ bun run preview
 ```
 
 Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+
+# Spotify Clone
+
+A Vue.js-based Spotify clone using the Spotify Web API and Web Playback SDK.
+
+## Project Setup
+
+1. Create a `public/images` directory and add the following default images:
+   - `default-album.png`
+   - `default-artist.jpg`
+   - `default-playlist.png`
+
+These images will be used as fallbacks when no image is available from the Spotify API.
+
+## Development
+
+```bash
+# install dependencies
+npm install
+
+# start development server
+npm run dev
+```

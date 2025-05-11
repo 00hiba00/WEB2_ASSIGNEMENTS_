@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-900 text-white">
+  <div class="min-h-screen bg-black text-white">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div class="flex flex-col md:flex-row items-start md:items-center mb-8">
         <img 
@@ -25,8 +25,8 @@
           <p class="text-gray-400 mb-2">{{ playlist?.description }}</p>
           <p class="text-gray-400 mb-4">By {{ playlist?.owner?.display_name }}</p>
           <div class="flex space-x-4">
-            <button @click="handlePlayPause" class="bg-green-500 hover:bg-green-600 text-black font-bold py-2 px-6 rounded-full transition duration-300">
-              {{ isPlaying ? 'Pause' : 'Play' }}
+            <button @click="handlePlayPlaylist" class="bg-green-500 hover:bg-green-600 text-black font-bold py-2 px-6 rounded-full transition duration-300">
+              {{ isPlayerReady ? 'Pause' : 'Play' }}
             </button>
             <button @click="handleDelete" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-full transition duration-300">
               Delete
@@ -77,16 +77,20 @@
 </template>
 
 <script setup>
-const route = useRoute()
-const authStore = useAuthStore()
-const audioStore = useAudioStore()
+import { ref, onMounted, onUnmounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { useSpotifyPlayer } from '@/composables/useSpotifyPlayer'
+import { useSpotifyApi } from '@/composables/useSpotifyApi'
 import NotificationModal from '~/components/NotificationModal.vue'
 
-const playlist = ref(null)
-const isPlaying = computed(() => 
-  audioStore.isPlaying && audioStore.currentPlaylist?.id === playlist.value?.id
-)
+const route = useRoute()
+const router = useRouter()
+const authStore = useAuthStore()
+const spotifyApi = useSpotifyApi()
+const { playTrack, playPlaylist, isPlayerReady, error: playerError } = useSpotifyPlayer()
 
+const playlist = ref(null)
 const showDeleteModal = ref(false)
 const showSuccessModal = ref(false)
 const showTrackDeleteModal = ref(false)
@@ -96,24 +100,31 @@ const trackToDelete = ref(null)
 const isEditing = ref(false)
 const editedName = ref('')
 
+const handlePlayTrack = (track) => {
+  if (!isPlayerReady.value) {
+    console.warn('Player not ready')
+    return
+  }
+  playTrack(track.uri)
+}
+
+const handlePlayPlaylist = () => {
+  if (!isPlayerReady.value || !playlist.value) {
+    console.warn('Player not ready or no playlist')
+    return
+  }
+  playPlaylist(playlist.value.id)
+}
+
 const fetchPlaylist = async () => {
   try {
-    const response = await fetch(`https://api.spotify.com/v1/playlists/${route.params.id}`, {
-      headers: {
-        Authorization: `Bearer ${authStore.token}`
-      }
-    })
+    const response = await spotifyApi.fetchWithToken(`https://api.spotify.com/v1/playlists/${route.params.id}`)
     playlist.value = await response.json()
   } catch (error) {
     console.error('Error fetching playlist:', error)
-  }
-}
-
-const handlePlayPause = () => {
-  if (isPlaying.value) {
-    audioStore.pauseTrack()
-  } else {
-    audioStore.playPlaylist(playlist.value)
+    if (error.message.includes('Failed to refresh token')) {
+      router.push('/login')
+    }
   }
 }
 
@@ -123,11 +134,8 @@ const handleDelete = () => {
 
 const confirmDelete = async () => {
   try {
-    await fetch(`https://api.spotify.com/v1/playlists/${route.params.id}/followers`, {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${authStore.token}`
-      }
+    await spotifyApi.fetchWithToken(`https://api.spotify.com/v1/playlists/${route.params.id}/followers`, {
+      method: 'DELETE'
     })
     showDeleteModal.value = false
     navigateTo('/playlists')
@@ -138,10 +146,9 @@ const confirmDelete = async () => {
 
 const addTrackToPlaylist = async (track) => {
   try {
-    await fetch(`https://api.spotify.com/v1/playlists/${route.params.id}/tracks`, {
+    await spotifyApi.fetchWithToken(`https://api.spotify.com/v1/playlists/${route.params.id}/tracks`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${authStore.token}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
@@ -161,12 +168,11 @@ const deleteTrackFromPlaylist = (track) => {
 
 const confirmTrackDelete = async () => {
   try {
-    const response = await fetch(
+    const response = await spotifyApi.fetchWithToken(
       `https://api.spotify.com/v1/playlists/${route.params.id}/tracks`,
       {
         method: 'DELETE',
         headers: {
-          Authorization: `Bearer ${authStore.token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -179,8 +185,6 @@ const confirmTrackDelete = async () => {
       showTrackDeleteModal.value = false
       await fetchPlaylist()
       showTrackDeleteSuccessModal.value = true
-    } else {
-      throw new Error('Failed to remove track')
     }
   } catch (error) {
     console.error('Error removing track:', error)
@@ -212,10 +216,9 @@ const cancelEdit = () => {
 
 const savePlaylistName = async () => {
   try {
-    const response = await fetch(`https://api.spotify.com/v1/playlists/${route.params.id}`, {
+    const response = await spotifyApi.fetchWithToken(`https://api.spotify.com/v1/playlists/${route.params.id}`, {
       method: 'PUT',
       headers: {
-        Authorization: `Bearer ${authStore.token}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
@@ -226,8 +229,6 @@ const savePlaylistName = async () => {
     if (response.ok) {
       await fetchPlaylist()
       isEditing.value = false
-    } else {
-      throw new Error('Failed to update playlist name')
     }
   } catch (error) {
     console.error('Error updating playlist name:', error)

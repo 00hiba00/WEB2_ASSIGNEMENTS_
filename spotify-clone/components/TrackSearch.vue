@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-3xl mx-auto p-5 bg-gray-800 rounded-lg shadow-lg">
+  <div class="max-w-3xl mx-auto">
     <div class="relative mb-5">
       <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
         <svg class="w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -11,10 +11,10 @@
         @input="handleSearch"
         placeholder="Search for tracks to add..."
         type="text"
-        class="w-full px-10 py-2 bg-gray-700 text-white rounded-full text-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+        class="w-full px-10 py-2 rounded-full bg-black text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
       />
     </div>
-    <div v-if="searchResults.length" class="bg-gray-700 rounded-lg overflow-hidden">
+    <div v-if="searchResults.length" class="bg-black rounded-lg overflow-hidden border border-gray-800">
       <div v-for="track in searchResults" 
            :key="track.id" 
            class="flex items-center justify-between p-4 hover:bg-gray-600 transition-colors duration-200"

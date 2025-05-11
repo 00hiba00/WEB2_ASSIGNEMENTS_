@@ -104,13 +104,26 @@ const fetchResults = async () => {
       type: 'Playlist',
       image: item.images?.[0]?.url || 'default_playlist_image.svg',
     }));
-    tracks.value = (data.tracks?.items || []).map((item) => ({
-      ...item,
-      type: 'Track',
-      image: item.album?.images?.[0]?.url || 'default_track_image.png',
-      albumId: item.album?.id,
-      albumName: item.album?.name,
-    }));
+    tracks.value = (data.tracks?.items || []).map((item) => {
+      // Ensure we have a valid track object with required properties
+      if (!item || !item.id || !item.uri) {
+        console.warn('Invalid track data received:', item);
+        return null;
+      }
+      
+      return {
+        id: item.id,
+        uri: item.uri,
+        name: item.name,
+        type: 'Track',
+        artists: item.artists,
+        album: item.album,
+        duration_ms: item.duration_ms,
+        popularity: item.popularity,
+        preview_url: item.preview_url,
+        external_urls: item.external_urls
+      };
+    }).filter(Boolean); // Remove any null items
 
     // Combine all results
     results.value = [

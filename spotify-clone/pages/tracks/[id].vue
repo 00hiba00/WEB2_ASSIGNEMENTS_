@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-900 text-white">
+  <div class="min-h-screen bg-black text-white">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div class="flex flex-col items-center mb-12">
         <div class="w-64 h-64 mb-6">
@@ -10,19 +10,19 @@
       <section v-if="track" class="mb-12">
         <h2 class="text-2xl font-bold mb-6">Track Details</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-          <div class="bg-gray-800 p-6 rounded-lg">
+          <div class="bg-black border border-gray-800 p-6 rounded-lg hover:bg-gray-900/40 transition-colors duration-300">
             <h3 class="text-lg font-semibold mb-2 text-gray-400">Duration</h3>
             <p class="text-xl">{{ formatDuration(track.duration_ms) }}</p>
           </div>
-          <div class="bg-gray-800 p-6 rounded-lg">
+          <div class="bg-black border border-gray-800 p-6 rounded-lg hover:bg-gray-900/40 transition-colors duration-300">
             <h3 class="text-lg font-semibold mb-2 text-gray-400">Album</h3>
             <p class="text-xl">{{ track.album.name }}</p>
           </div>
-          <div class="bg-gray-800 p-6 rounded-lg">
+          <div class="bg-black border border-gray-800 p-6 rounded-lg hover:bg-gray-900/40 transition-colors duration-300">
             <h3 class="text-lg font-semibold mb-2 text-gray-400">Release Date</h3>
             <p class="text-xl">{{ formatDate(track.album.release_date) }}</p>
           </div>
-          <div class="bg-gray-800 p-6 rounded-lg">
+          <div class="bg-black border border-gray-800 p-6 rounded-lg hover:bg-gray-900/40 transition-colors duration-300">
             <h3 class="text-lg font-semibold mb-2 text-gray-400">Popularity</h3>
             <p class="text-xl">{{ track.popularity }}/100</p>
           </div>
